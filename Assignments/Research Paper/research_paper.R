@@ -22,8 +22,11 @@ if(!"pwd" %in% ls()) {
 
 # Data
 if(data) {
-  adm = as.tbl(openxlsx::read.xlsx("https://www.tn.gov/content/dam/tn/education/data/profile/district_profile_2017-18.xlsx")) %>% 
-    janitor::clean_names()
+  (adm = as.tbl(openxlsx::read.xlsx("https://www.tn.gov/content/dam/tn/education/data/profile/district_profile_2017-18.xlsx")) %>% 
+    janitor::clean_names()) %>% 
+    select(starts_with("district"), adm = average_daily_membership, ends_with("_pct"),
+           administrators:state_state_funding_pct)
+  
   
   # Enrollment
   # Number of schools

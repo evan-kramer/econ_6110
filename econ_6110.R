@@ -1,6 +1,6 @@
 # ECON 6110
 # Evan Kramer
-# 4/1/2019
+# 4/8/2019
 
 # Set up
 options(java.parameters = "-Xmx16G")
@@ -88,3 +88,4 @@ ggplot(mutate(data, n = row_number()),
 # Run regression
 # Use coefficients to compute production and cost functions
 
+# 4/8/2019
