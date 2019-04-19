@@ -20,13 +20,36 @@ if(!"pwd" %in% ls()) {
   # pwd = rstudioapi::askForPassword("Password:")  
 }
 
+# Research questions
+
+
 # Data
 if(data) {
-  (adm = as.tbl(openxlsx::read.xlsx("https://www.tn.gov/content/dam/tn/education/data/profile/district_profile_2017-18.xlsx")) %>% 
-    janitor::clean_names()) %>% 
+  for(x in 2:27) {
+    if(sum(is.na(tax[, str_c("x", x)])) != nrow(tax)) {
+      print(x)
+    }
+  }
+  
+  tax = readxl::read_excel("C:/Users/CA19130/Downloads/taxlist.xlsx", skip = 5) %>% 
+    janitor::clean_names() %>% 
+    unite(col = "tax", sep = " ") %>% 
+    mutate(tax = str_trim(str_replace_all(tax, "NA", ""))) %>%
+    filter(!str_detect(tax, "Cities") & !str_detect(tax, "Post Office")) 
+    
+  
+  
+  tax$county_code = str_sub(tax$tax, -2, -1)
+  mutate(tax, tax = str_trim(str_replace(tax, county_code, "")))
+  
+  tax$tax = str_replace(tax$tax, tax$county_code, "")
+  
+  tax$tax_rate = str_sub(tax$tax, str_locate(tax$tax, ".")[, 1] - 2, str_locate(tax$tax, ".")[, 1] + 4)
+    
+  adm = as.tbl(openxlsx::read.xlsx("https://www.tn.gov/content/dam/tn/education/data/profile/district_profile_2017-18.xlsx")) %>% 
+    janitor::clean_names() %>% 
     select(starts_with("district"), adm = average_daily_membership, ends_with("_pct"),
            administrators:state_state_funding_pct)
-  
   
   # Enrollment
   # Number of schools
