@@ -135,7 +135,8 @@ if(data) {
         gather("year", "median_home_sale_price", 2:11) %>% 
         mutate(year = as.numeric(year)),
       by = c("year", "county")
-    )
+    ) %>% 
+    mutate_at(vars(proficiency_rate:median_home_sale_price), "log")
   
   # Output file
   write_csv(df, "Assignments/Research Paper/research_data.csv", na = "")
@@ -148,9 +149,15 @@ if(analysis) {
   # OLS and fixed-effects models
   ols = lm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
              pct_with_bachelors + crime_rate + median_home_sale_price, df) 
-  fe = plm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed, df,
+  fe = plm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
+             pct_with_bachelors + crime_rate + median_home_sale_price, df,
       index = c("system", "year"), model = "within") 
   pFtest(ols, fe)
+  
+  # Growth as outcome variable
+  lm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
+       pct_with_bachelors + crime_rate + median_home_sale_price, df) %>% 
+    summary() 
 } else {
   rm(analysis)
 }
