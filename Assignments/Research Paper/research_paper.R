@@ -13,8 +13,8 @@ library(plm)
 setwd("C:/Users/CA19130/Documents/Projects/ECON 6110/")
 
 # Config
-data = T
-analysis = F
+data = F
+analysis = T
 visuals = F
 
 # Research questions
@@ -136,7 +136,10 @@ if(data) {
         mutate(year = as.numeric(year)),
       by = c("year", "county")
     ) %>% 
-    mutate_at(vars(proficiency_rate:median_home_sale_price), "log")
+    select(year, county, everything()) %>% 
+    mutate_at(vars(proficiency_rate:median_home_sale_price), "log") %>% 
+    filter_at(vars(proficiency_rate:median_home_sale_price),
+              all_vars(. != -Inf & !is.na(.)))
   
   # Output file
   write_csv(df, "Assignments/Research Paper/research_data.csv", na = "")
@@ -146,18 +149,80 @@ if(data) {
 
 # Analysis
 if(analysis) {
-  # OLS and fixed-effects models
-  ols = lm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
-             pct_with_bachelors + crime_rate + median_home_sale_price, df) 
-  fe = plm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
-             pct_with_bachelors + crime_rate + median_home_sale_price, df,
-      index = c("system", "year"), model = "within") 
-  pFtest(ols, fe)
+  # Entire model
+  # OLS
+  model1 = lm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
+       pct_with_bachelors + crime_rate + median_home_sale_price, df) 
+  model2 = lm(tvaas_composite ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
+       pct_with_bachelors + crime_rate + median_home_sale_price, df)
   
-  # Growth as outcome variable
-  lm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
-       pct_with_bachelors + crime_rate + median_home_sale_price, df) %>% 
-    summary() 
+  # Fixed-effects 
+  model3 = plm(proficiency_rate ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
+        pct_with_bachelors + crime_rate + median_home_sale_price, df,
+      index = c("system", "year"), model = "within") 
+  model4 = plm(tvaas_composite ~ adm + number_of_schools + per_pupil_funding + pct_swd + pct_ed + 
+        pct_with_bachelors + crime_rate + median_home_sale_price, df,
+      index = c("system", "year"), model = "within") 
+  
+  # Model diagnostics
+  ggplot(data = NULL, aes(y = model4$residuals, x = index(df))) + 
+    geom_point(alpha = 0.3) + 
+    theme_bw() + 
+    geom_hline(yintercept = 0, col = "red") + 
+    ggtitle("Residuals from Model 4") + 
+    scale_x_continuous(name = "") + 
+    scale_y_continuous(name = "")
+  ggsave("Assignments/Research Paper/model4_residuals.png", units = "in", 
+         width = 6.5, height = 4)
+  
+  # What is the relationship between per-pupil funding and students' test scores on state standardized tests (TCAP) in Tennessee? 
+  ggplot(data = df, aes(y = proficiency_rate, x = per_pupil_funding)) +
+  # ggplot(data = df, aes(y = tvaas_composite, x = per_pupil_funding)) +
+    geom_point(alpha = 0.3) + 
+    theme_bw() + 
+    geom_smooth(method = "lm", se = F) + 
+    ggtitle("Academic Performance as a Function of Per-Pupil Funding") + 
+    scale_x_continuous(name = "Per-Pupil Funding") + 
+    scale_y_continuous(name = "Proficiency Rate")
+  ggsave("Assignments/Research Paper/prof_per_pupil.png", units = "in",
+         width = 6.5, height = 4)
+
+  # What is the relationship between student demographics and district size and TCAP results? 
+  ggplot(data = df, aes(y = proficiency_rate, x = adm)) +
+    geom_point(alpha = 0.3) + 
+    theme_bw() + 
+    geom_smooth(method = "lm", se = F) + 
+    ggtitle("Academic Performance as a Function of ADM") + 
+    scale_x_continuous(name = "ADM") + 
+    scale_y_continuous(name = "Proficiency Rate")
+  ggsave("Assignments/Research Paper/prof_adm.png", units = "in",
+         width = 6.5, height = 4)
+
+  # How do student demographics relate to academic performance?
+  ggplot(data = df, aes(y = proficiency_rate, x = pct_ed)) +
+    geom_point(alpha = 0.3) + 
+    theme_bw() + 
+    geom_smooth(method = "lm", se = F) + 
+    ggtitle("Academic Performance as a Function of Poverty") + 
+    scale_x_continuous(name = "Proportion of Economically Disadvantaged Students") + 
+    scale_y_continuous(name = "Proficiency Rate")
+  ggsave("Assignments/Research Paper/prof_pct_ed.png", units = "in",
+         width = 6.5, height = 4)
+  
+  # To what degree are county-level factors (e.g., crime rates, housing prices, higher education attainment levels) related to TCAP performance and improvement in TCAP performance?
+  # ggplot(data = df, aes(y = proficiency_rate, x = crime_rate)) +
+  ggplot(data = df, aes(y = proficiency_rate, x = median_home_sale_price)) +
+    geom_point(alpha = 0.3) + 
+    theme_bw() + 
+    geom_smooth(method = "lm", se = F) + 
+    # ggtitle("Academic Performance as a Function of Crime Rates") + 
+    # scale_x_continuous(name = "Crime Rate") + 
+    ggtitle("Academic Performance as a Function of Home Prices") +
+    scale_x_continuous(name = "Median Home Price") +     
+    scale_y_continuous(name = "Proficiency Rate")
+  # ggsave("Assignments/Research Paper/prof_crime.png", units = "in",
+  ggsave("Assignments/Research Paper/prof_home_price.png", units = "in",
+         width = 6.5, height = 4)
 } else {
   rm(analysis)
 }
